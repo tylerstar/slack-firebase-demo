@@ -10,6 +10,7 @@ import {
   Icon
 } from "semantic-ui-react";
 import firebase from '../../firebase';
+import md5 from 'md5';
 
 const Register = () => {
   const [username, setUsername] = useState("");
@@ -18,6 +19,7 @@ const Register = () => {
   const [passwordConfirmation, setPasswordConfirmation] = useState("");
   const [errors, setErrors] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [usersRef] = useState(firebase.database().ref('users'));
 
   const handleChange = event => {
     const value = event.target.value;
@@ -47,7 +49,7 @@ const Register = () => {
       error = { message: 'Fill in all fields' };
       setErrors([error, ...errors]);
     } else if (!isPasswordValid()) {
-      error = { message: 'Password is invalid.' }
+      error = { message: 'Password is invalid.' };
       setErrors([error, ...errors]);
     } else {
       return true;
@@ -80,7 +82,24 @@ const Register = () => {
         .createUserWithEmailAndPassword(email, password)
         .then(createdUser => {
           console.log(createdUser);
-          setLoading(false);
+          createdUser.user
+            .updateProfile({
+              displayName: username,
+              photoURL: `http://gravatar.com/avatar/${md5(
+                createdUser.user.email
+              )}?d=identicon`
+            })
+            .then(() => {
+              saveUser(createdUser).then(() => {
+                console.log('user saved');
+              });
+              setLoading(false);
+            })
+            .catch(error => {
+              console.log(error);
+              setErrors([error, ...errors]);
+              setLoading(false);
+            });
         })
         .catch(error => {
           console.error(error);
@@ -88,6 +107,13 @@ const Register = () => {
           setErrors([error, ...errors])
         })
     }
+  };
+
+  const saveUser = createdUser => {
+    return usersRef.child(createdUser.user.uid).set({
+      name: createdUser.user.displayName,
+      avatar: createdUser.user.photoURL
+    });
   };
 
   const handleInputError = inputName => {
@@ -101,7 +127,7 @@ const Register = () => {
   return (
     <Grid textAlign="center" vericalAlign="middle" className="app">
       <Grid.Column style={{maxWidth: 450}}>
-        <Header as="h2" icon color="orange" textAlign="center">
+        <Header as="h1" icon color="orange" textAlign="center">
           <Icon name="puzzle piece" color="orange"/>
           Register for DevChat
         </Header>
@@ -146,7 +172,7 @@ const Register = () => {
             <Form.Input
               fluid
               name="passwordConfirmation"
-              icon="lock"
+              icon="repeat"
               iconPosition="left"
               placeholder="Password Conformation"
               onChange={handleChange}
