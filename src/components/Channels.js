@@ -1,24 +1,49 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Menu, Icon, Modal, Form, Input, Button } from 'semantic-ui-react';
+import { connect } from 'react-redux';
+import { setCurrentChannel } from "../actions";
 import firebase from '../firebase';
 
-const Channels = ({ currentUser }) => {
+const Channels = ({ currentUser, setCurrentChannel }) => {
   const [channels, setChannels] = useState([]);
   const [modal, setModal] = useState(false);
   const [channelName, setChannelName] = useState("");
   const [channelDetails, setChannelDetails] = useState("");
-  const [channelsRef] = useState(firebase.database().ref('channels'));
+  const channelsRef = useRef(firebase.database().ref('channels'));
+  const [firstLoad, setFirstLoad] = useState(true);
+  const [activeChannel, setActiveChannel] = useState("");
 
   useEffect(() => {
     addListeners();
   }, [channels.length]);
 
+  useEffect(() => {
+    return () => {
+      removeListeners();
+      console.log('remove listeners');
+    };
+  }, []);
+
   const addListeners = () => {
     let loadedChannels = [];
-    channelsRef.on('child_added', snap => {
+    channelsRef.current.on('child_added', snap => {
       loadedChannels.push(snap.val());
       setChannels(loadedChannels);
+      setFirstChannel();
     });
+  };
+
+  const removeListeners = () => {
+    channelsRef.current.off();
+  };
+
+  const setFirstChannel = () => {
+    if (firstLoad && channels.length > 0) {
+      const firstChannel = channels[0];
+      setCurrentChannel(firstChannel);
+      setActiveChannel(firstChannel.id);
+      setFirstLoad(false);
+    }
   };
 
   const toggleModal = () => {
@@ -33,7 +58,7 @@ const Channels = ({ currentUser }) => {
   };
 
   const addChannels = () => {
-    const key = channelsRef.push().key;
+    const key = channelsRef.current.push().key;
 
     const newChannel = {
       id: key,
@@ -46,6 +71,7 @@ const Channels = ({ currentUser }) => {
     };
 
     channelsRef
+      .current
       .child(key)
       .update(newChannel)
       .then(() => {
@@ -63,9 +89,10 @@ const Channels = ({ currentUser }) => {
     channels.length > 0 && channels.map(channel => (
       <Menu.Item
         key={channel.id}
-        onClick={() => console.log(channel)}
+        onClick={() => changeChannel(channel)}
         name={channel.name}
         style={{ opacity: 0.7 }}
+        active={channel.id === activeChannel}
       >
         # {channel.name}
       </Menu.Item>
@@ -91,13 +118,18 @@ const Channels = ({ currentUser }) => {
     }
   };
 
+  const changeChannel = (channel) => {
+    setActiveChannel(channel.id);
+    setCurrentChannel(channel);
+  };
+
   return (
     <div>
       <Menu.Menu style={{ paddingBottom: '2em' }}>
         <Menu.Item>
-          <span>{" "}
+          <span>
             <Icon name='exchange' /> CHANNELS
-          </span>
+          </span>{" "}
           ({ channels.length  }) <Icon name='add' onClick={toggleModal} />
         </Menu.Item>
         {displayChannels(channels)}
@@ -143,4 +175,8 @@ const Channels = ({ currentUser }) => {
   );
 };
 
-export default Channels;
+
+export default connect(
+  null,
+  { setCurrentChannel }
+)(Channels);
