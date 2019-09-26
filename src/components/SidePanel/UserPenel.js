@@ -1,6 +1,6 @@
 import React from 'react';
 import { Grid, Header, Icon, Dropdown, Image } from 'semantic-ui-react';
-import firebase from '../firebase';
+import firebase from '../../firebase';
 
 const UserPanel = ({ currentUser }) => {
   const dropDownOptions = () => [

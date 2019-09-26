@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Menu, Icon, Modal, Form, Input, Button } from 'semantic-ui-react';
 import { connect } from 'react-redux';
-import { setCurrentChannel } from "../actions";
-import firebase from '../firebase';
+import { setCurrentChannel } from "../../actions";
+import firebase from '../../firebase';
 
 const Channels = ({ currentUser, setCurrentChannel }) => {
   const [channels, setChannels] = useState([]);
